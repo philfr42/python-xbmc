@@ -1,9 +1,7 @@
 #!/bin_/env/python
 
-import urllib, urllib2
+import urllib2
 import json
-
-PLAYER_VIDEO=1
 
 class XBMCTransport(object):
 	def execute(self, method, args):
@@ -14,6 +12,7 @@ class XBMCJsonTransport(XBMCTransport):
 		self.url=url
 		self.username=username
 		self.password=password
+		self.id = 0
 	def execute(self, method, *args, **kwargs):
 		header = {
 			'Content-Type' : 'application/json',
@@ -23,18 +22,22 @@ class XBMCJsonTransport(XBMCTransport):
 			args=args[0]
 		params = kwargs
 		params['jsonrpc']='2.0'
+		params['id']= self.id
+		self.id += 1
 		params['method']=method
 		params['params']=args
 		
 		values=json.dumps(params)
 		print values
-		auth_handler = urllib2.HTTPBasicAuthHandler()
-		auth_handler.add_password(realm=None,
-                          uri=self.url,
-                          user=self.username,
-                          passwd=self.password)
+		password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+		password_mgr.add_password(None, self.url, self.username, self.password)
+		auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+#                auth_handler = urllib2.HTTPBasicAuthHandler()
+#                auth_handler.add_password(realm='XBMC',
+#                           uri=self.url,
+#                           user=self.username,
+#                           passwd=self.password)
 		opener = urllib2.build_opener(auth_handler)
-		# ...and install it globally so it can be used with urlopen.
 		urllib2.install_opener(opener)
 		#return None
 		data = values
@@ -46,10 +49,9 @@ class XBMCJsonTransport(XBMCTransport):
 class XBMC(object):
 	def __init__(self, url, username='xbmc', password='xbmc'):
 		self.transport = XBMCJsonTransport(url, username, password)
-		self.VideoLibrary = VideoLibrary(self.transport)	
-		self.Application = Application(self.transport)	
-		self.Gui = Gui(self.transport)	
-		self.Player = Player(self.transport)	
+		for cl in classes:
+			s = "self.%s = %s(self.transport)"%(cl,cl)
+			exec(s)
 	def execute(self, *args, **kwargs):
 		self.transport.execute(*args, **kwargs)
 
@@ -63,13 +65,9 @@ class XbmcNamespace(object):
 		def hook(*args, **kwargs):
 			return self.xbmc.execute(xbmcmethod, *args, **kwargs)
 		return hook
-	
-class VideoLibrary(XbmcNamespace):
-	pass
-class Application(XbmcNamespace):
-	pass
-class Gui(XbmcNamespace):
-	pass
-class Player(XbmcNamespace):
-	pass
+
+classes = ["VideoLibrary", "Application", "Player", "Input", "System", "Playlist", "Addons", "AudioLibrary", "Files", "GUI" , "JSONRPC", "PVR", "xbmc"]
+for cl in classes:
+	s = "class %s(XbmcNamespace): pass"%cl
+	exec (s)
 
