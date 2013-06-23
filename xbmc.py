@@ -32,11 +32,6 @@ class XBMCJsonTransport(XBMCTransport):
 		password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
 		password_mgr.add_password(None, self.url, self.username, self.password)
 		auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-#                auth_handler = urllib2.HTTPBasicAuthHandler()
-#                auth_handler.add_password(realm='XBMC',
-#                           uri=self.url,
-#                           user=self.username,
-#                           passwd=self.password)
 		opener = urllib2.build_opener(auth_handler)
 		urllib2.install_opener(opener)
 		#return None
